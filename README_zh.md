@@ -72,26 +72,38 @@ cp mjlab_patch/mjlab/managers/observation_manager.py \
 python scripts/list_envs.py --keyword AMP
 ```
 
-主要任务：
+主要任务（29-DOF）：
 
 - `Unitree-G1-AMP-Rough`
 - `Unitree-G1-AMP-Flat`
 
+新增任务（23-DOF）：
+
+- `Unitree-G1-23DOF-AMP-Rough`
+- `Unitree-G1-23DOF-AMP-Flat`
+
 ## 训练
 
+**29-DOF（原始）:**
 
 ```bash
 python scripts/train.py Unitree-G1-AMP-Flat --env.scene.num-envs=4096
 ```
 
+**23-DOF（减少关节空间）:**
+
+```bash
+python scripts/train.py Unitree-G1-23DOF-AMP-Flat --env.scene.num-envs=4096
+```
 
 日志默认在：
 
-- `logs/rsl_rl/g1_amp_locomotion/<time_stamp_run>/`
+- 29-DOF：`logs/rsl_rl/g1_amp_locomotion/<time_stamp_run>/`
+- 23-DOF：`logs/rsl_rl/g1_23dof_amp_locomotion/<time_stamp_run>/`
 
 ## 训练曲线说明（重要）
 
-- 在约 `2w` 轮（约 20k iterations）附近，策略通常会突然学会“跌倒后恢复”行为。
+- 在约 `2w` 轮（约 20k iterations）附近，策略通常会突然学会"跌倒后恢复"行为。
 - 对应地，`logs` 中多个指标会出现明显突变（阶跃式变化），这是正常现象，不一定是训练异常。
 
 ![训练日志突变示例](logs.png)
@@ -100,14 +112,25 @@ python scripts/train.py Unitree-G1-AMP-Flat --env.scene.num-envs=4096
 
 使用已训练权重回放：
 
+**29-DOF：**
+
 ```bash
 python scripts/play.py Unitree-G1-AMP-Rough \
 	--checkpoint-file logs/rsl_rl/g1_amp_locomotion/<run_dir>/model_<iter>.pt 
 ```
 
+**23-DOF：**
+
+```bash
+python scripts/play.py Unitree-G1-23DOF-AMP-Rough \
+	--checkpoint-file logs/rsl_rl/g1_23dof_amp_locomotion/<run_dir>/model_<iter>.pt 
+```
+
 说明：训练与回放阶段都支持 ONNX 导出（默认开启）。
 
 ## 运动数据准备
+
+### 标准（29-DOF）转换
 
 仓库提供 CSV 到 NPZ 的转换脚本：
 
@@ -122,14 +145,59 @@ python scripts/csv_to_npz.py --help
 
 只要上述目录中存在可用 NPZ，训练配置会自动加载。
 
+### 29-DOF 到 23-DOF 转换
+
+23-DOF 机器人移除了腰部偏航/翻滚、手腕俯仰/偏航关节（共 6 个 DOF）。
+专用转换脚本将 29-DOF 运动数据映射到 23-DOF 关节和身体空间：
+
+```bash
+python scripts/convert_npz_23dof.py \
+  --input src/assets/motions/g1/amp \
+  --output src/assets/motions/g1/23dof_amp
+```
+
+身体映射（29→23，排除 worldbody）：
+- 保留：body 索引 0-12, 15-20, 23-27
+- 移除：waist_yaw(13), waist_roll(14), left_wrist_pitch(21), left_wrist_yaw(22), right_wrist_pitch(28), right_wrist_yaw(29)
+
+关节映射移除 6 个 DOF：left_waist_yaw, left_waist_roll, right_waist_yaw, right_waist_roll, left_wrist_pitch, left_wrist_yaw, right_wrist_pitch, right_wrist_yaw，以及对应的关节速度项。
+
+预览运动数据：
+
+```bash
+python scripts/play_motion.py --npz src/assets/motions/g1/23dof_amp/WalkandRun/amp_walk_forward.npz
+```
+
+## 23-DOF 架构说明
+
+23-DOF 变体从 Unitree G1 的 29 个执行关节中移除 6 个：
+
+| 移除的关节 | 原因 |
+|---|---|
+| left_waist_yaw, left_waist_roll | 腰部自由度 |
+| right_waist_yaw, right_waist_roll | 腰部自由度 |
+| left_wrist_pitch, left_wrist_yaw | 末端执行器自由度 |
+| right_wrist_pitch, right_wrist_yaw | 末端执行器自由度 |
+
+优势：
+- 动作维度从 29 降低到 23
+- 简化策略网络结构
+- 聚焦关键运动关节（髋、膝、踝、肩、肘）的学习
+- 使用相同的 AMP 观测结构，body 名称已更新对齐
+
+23-DOF 任务配置位于 `src/tasks/amp_loco/config/g1_23dof/`。
+
 ## 目录说明
 
 - `src/tasks/amp_loco`：AMP locomotion/recovery 任务实现
-- `src/tasks/amp_loco/config/g1`：G1 任务注册、环境与 RL 配置
+- `src/tasks/amp_loco/config/g1`：G1 29-DOF 任务注册、环境与 RL 配置
+- `src/tasks/amp_loco/config/g1_23dof`：G1 23-DOF 任务注册、环境与 RL 配置
 - `src/tasks/amp_loco/mdp`：奖励、观测、事件、终止逻辑
 - `scripts/train.py`：训练入口
 - `scripts/play.py`：回放入口
-- `scripts/csv_to_npz.py`：动作数据转换工具
+- `scripts/csv_to_npz.py`：标准 29-DOF 动作数据转换工具
+- `scripts/convert_npz_23dof.py`：29-DOF 到 23-DOF 动作数据转换
+- `scripts/play_motion.py`：NPZ 动作预览可视化
 - `mjlab_patch`：依赖的 mjlab 本地补丁
 
 ## 项目亮点总结

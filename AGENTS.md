@@ -193,6 +193,36 @@ python scripts/list_envs.py --keyword AMP
 
 ---
 
+---
+
+## Git 工作流
+
+### 原子化本地提交规则
+
+每次对话中有较大改动完成时（bugfix、feature、配置变更、文档更新等），AI Agent **必须自动在本地创建一个原子级 commit**。
+
+- 每个 commit 应当逻辑完整、可独立存在（一个改动一个 commit）
+- commit message 应当清晰说明做了什么、为什么
+- 不强制 push，仅作本地保存
+
+### Push 到远程需要用户确认
+
+**严禁 AI Agent 擅自推送任何 commit 到远程仓库。**
+
+- 所有推送操作（`git push`）必须先向用户列出将要推送的 commit 内容、影响范围
+- 在获得用户明确批准后方可执行 push
+- 默认推送到 `kennyp/23dof`（用户 fork 的 `23dof` 分支）
+- `git push --force` 绝对禁止，必须由用户手动执行
+
+### 分支说明
+
+| 分支 | 用途 | 远程 |
+|------|------|------|
+| `23dof` | 当前开发分支（23-DOF AMP 功能） | `kennyp/23dof` |
+| `main` | 上游稳定分支 | `origin/main` |
+
+---
+
 ## 编程约定
 
 ### Python 风格

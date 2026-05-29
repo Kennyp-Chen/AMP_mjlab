@@ -10,7 +10,9 @@ INSTALL_REQUIRES = [
 # Installation operation
 setup(
     name="wbc_mjlab",
-    packages=["src"],
+    packages=["src", "rsl_rl"]
+    + [f"src.{pkg}" for pkg in find_packages("src")]
+    + [f"rsl_rl.{pkg}" for pkg in find_packages("rsl_rl")],
     version="0.0.1",
     install_requires=INSTALL_REQUIRES,
 )

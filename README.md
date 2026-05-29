@@ -72,20 +72,34 @@ cp mjlab_patch/mjlab/managers/observation_manager.py \
 python scripts/list_envs.py --keyword AMP
 ```
 
-Main tasks:
+Main tasks (29-DOF):
 
 - `Unitree-G1-AMP-Rough`
 - `Unitree-G1-AMP-Flat`
 
+New tasks (23-DOF):
+
+- `Unitree-G1-23DOF-AMP-Rough`
+- `Unitree-G1-23DOF-AMP-Flat`
+
 ## Training
+
+**29-DOF (original):**
 
 ```bash
 python scripts/train.py Unitree-G1-AMP-Flat --env.scene.num-envs=4096
 ```
 
+**23-DOF (reduced joint space):**
+
+```bash
+python scripts/train.py Unitree-G1-23DOF-AMP-Flat --env.scene.num-envs=4096
+```
+
 Logs are saved by default to:
 
-- `logs/rsl_rl/g1_amp_locomotion/<time_stamp_run>/`
+- 29-DOF: `logs/rsl_rl/g1_amp_locomotion/<time_stamp_run>/`
+- 23-DOF: `logs/rsl_rl/g1_23dof_amp_locomotion/<time_stamp_run>/`
 
 ## Training Curve Note (Important)
 
@@ -98,14 +112,25 @@ Logs are saved by default to:
 
 Replay with a trained checkpoint:
 
+**29-DOF:**
+
 ```bash
 python scripts/play.py Unitree-G1-AMP-Rough \
   --checkpoint-file logs/rsl_rl/g1_amp_locomotion/<run_dir>/model_<iter>.pt
 ```
 
+**23-DOF:**
+
+```bash
+python scripts/play.py Unitree-G1-23DOF-AMP-Rough \
+  --checkpoint-file logs/rsl_rl/g1_23dof_amp_locomotion/<run_dir>/model_<iter>.pt
+```
+
 Note: ONNX export is enabled by default in both training and play workflows.
 
 ## Motion Data Preparation
+
+### Standard (29-DOF) Conversion
 
 CSV-to-NPZ conversion script:
 
@@ -120,14 +145,59 @@ Recommended data layout:
 
 If valid NPZ files exist in these folders, training config loads them automatically.
 
+### 29-DOF to 23-DOF Conversion
+
+The 23-DOF robot removes waist yaw/roll, wrist pitch/yaw joints (6 DOF removed).
+A dedicated conversion script maps 29-DOF motion data to the 23-DOF joint and body space:
+
+```bash
+python scripts/convert_npz_23dof.py \
+  --input src/assets/motions/g1/amp \
+  --output src/assets/motions/g1/23dof_amp
+```
+
+Body mapping (29→23, worldbody excluded):
+- Keep: body indices 0-12, 15-20, 23-27
+- Remove: waist_yaw(13), waist_roll(14), left_wrist_pitch(21), left_wrist_yaw(22), right_wrist_pitch(28), right_wrist_yaw(29)
+
+Joint mapping removes 6 DOF: left_waist_yaw, left_waist_roll, right_waist_yaw, right_waist_roll, left_wrist_pitch, left_wrist_yaw, right_wrist_pitch, right_wrist_yaw, and the corresponding joint velocity entries.
+
+To preview motion data:
+
+```bash
+python scripts/play_motion.py --npz src/assets/motions/g1/23dof_amp/WalkandRun/amp_walk_forward.npz
+```
+
+## 23-DOF Architecture
+
+The 23-DOF variant reduces the Unitree G1 from 29 actuated joints to 23 by removing:
+
+| Removed Joints | Reason |
+|---|---|
+| left_waist_yaw, left_waist_roll | Waist DOF |
+| right_waist_yaw, right_waist_roll | Waist DOF |
+| left_wrist_pitch, left_wrist_yaw | End-effector DOF |
+| right_wrist_pitch, right_wrist_yaw | End-effector DOF |
+
+This reduction:
+- Lowers action dimension from 29 to 23
+- Simplifies the policy network
+- Focuses learning on essential locomotion joints (hip, knee, ankle, shoulder, elbow)
+- Uses the same AMP observation structure with updated body names
+
+Task configs are located at `src/tasks/amp_loco/config/g1_23dof/`.
+
 ## Repository Structure
 
 - `src/tasks/amp_loco`: AMP locomotion/recovery task implementation
-- `src/tasks/amp_loco/config/g1`: G1 task registration, env configs, RL configs
+- `src/tasks/amp_loco/config/g1`: G1 29-DOF task registration, env configs, RL configs
+- `src/tasks/amp_loco/config/g1_23dof`: G1 23-DOF task registration, env configs, RL configs
 - `src/tasks/amp_loco/mdp`: rewards, observations, events, termination logic
 - `scripts/train.py`: training entry point
 - `scripts/play.py`: playback entry point
-- `scripts/csv_to_npz.py`: motion data conversion tool
+- `scripts/csv_to_npz.py`: standard 29-DOF motion data conversion tool
+- `scripts/convert_npz_23dof.py`: 29-DOF to 23-DOF motion data converter
+- `scripts/play_motion.py`: NPZ motion playback visualizer
 - `mjlab_patch`: required local patch for mjlab
 
 ## Highlights
