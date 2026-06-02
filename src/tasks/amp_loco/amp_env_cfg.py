@@ -372,7 +372,7 @@ def make_amp_env_cfg() -> ManagerBasedRlEnvCfg:
         max_init_terrain_level=5,
       ),
       sensors=(terrain_scan,),
-      num_envs=1,
+      num_envs=4096,
       extent=2.0,
     ),
     observations=observations,
