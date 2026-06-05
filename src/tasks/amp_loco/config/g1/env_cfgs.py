@@ -169,8 +169,18 @@ def g1_amp_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   return cfg
 
 
-def g1_amp_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-  """Create Unitree G1 flat terrain velocity configuration."""
+def g1_amp_flat_env_cfg(play: bool = False, experiment: str = "baseline") -> ManagerBasedRlEnvCfg:
+  """Create Unitree G1 flat terrain velocity configuration.
+
+  Args:
+      play: If True, apply play-mode overrides (infinite episode, no corruption, etc.).
+      experiment: Experiment name for parameter tuning.
+          - "baseline"       : original 0.5m termination height
+          - "height_0.3"     : lower termination height (0.5 → 0.3) — help recovery
+          - "height_0.7"     : higher termination height (0.5 → 0.7) — prevent falls
+          - "recovery_800"   : longer recovery window (250 → 800 steps)
+          - "height_reward_3x": higher height tracking weight (1.0 → 3.0)
+  """
   cfg = g1_amp_rough_env_cfg(play=play)
 
   cfg.sim.njmax = 640
@@ -187,11 +197,6 @@ def g1_amp_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.scene.sensors = tuple(
     s for s in (cfg.scene.sensors or ()) if s.name != "terrain_scan"
   )
-  # del cfg.observations["actor"].terms["height_scan"]
-  # del cfg.observations["critic"].terms["height_scan"]
-
-  # Disable terrain curriculum (not present in play mode since rough clears all).
-  # cfg.curriculum.pop("terrain_levels", None)
 
   if play:
     twist_cmd = cfg.commands["twist"]
@@ -199,5 +204,21 @@ def g1_amp_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     twist_cmd.ranges.lin_vel_x = (-1.5, 3.0)
     twist_cmd.ranges.lin_vel_y = (-1.0, 1.0)
     twist_cmd.ranges.ang_vel_z = (-3.14 / 2, 3.14 / 2)
+
+  # ------------------------------------------------------------------
+  # Experiment parameter overrides (apply after all base setup)
+  # ------------------------------------------------------------------
+  if experiment == "height_0.3":
+    cfg.terminations["bad_base_height"].params["minimum_height"] = 0.3
+    print(f"[INFO] Experiment '{experiment}': Set termination height to 0.3m.")
+  elif experiment == "height_0.7":
+    cfg.terminations["bad_base_height"].params["minimum_height"] = 0.7
+    print(f"[INFO] Experiment '{experiment}': Set termination height to 0.7m.")
+  elif experiment == "recovery_800":
+    cfg.events["init_motion_loader"].params["max_delay_steps"] = 800
+    print(f"[INFO] Experiment '{experiment}': Set recovery delay to 800 steps.")
+  elif experiment == "height_reward_3x":
+    cfg.rewards["track_root_height"].weight = 3.0
+    print(f"[INFO] Experiment '{experiment}': Set height tracking reward weight to 3.0.")
 
   return cfg

@@ -31,9 +31,20 @@ class RslRlAmpRunnerCfg(RslRlOnPolicyRunnerCfg):
   amp_anchor_name: str = ""
 
 
-def g1_amp_ppo_runner_cfg() -> RslRlAmpRunnerCfg:
-  """Create RL runner configuration for Unitree G1 AMP locomotion task."""
+def g1_amp_ppo_runner_cfg(
+  experiment: str = "baseline",
+  seed: int | None = None,
+) -> RslRlAmpRunnerCfg:
+  """Create RL runner configuration for Unitree G1 AMP locomotion task.
+
+  Args:
+      experiment: Experiment name; appended to the log directory name.
+      seed: Random seed. If None (default=42 from base config), uses the default.
+            Set to a different value to vary training trajectory.
+  """
+  exp_suffix = "" if experiment == "baseline" else f"_{experiment}"
   return RslRlAmpRunnerCfg(
+    seed=seed or 42,
     actor=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
       activation="elu",
@@ -64,7 +75,7 @@ def g1_amp_ppo_runner_cfg() -> RslRlAmpRunnerCfg:
       max_grad_norm=1.0,
       class_name="AMPPPO",
     ),
-    experiment_name="g1_amp_locomotion",
+    experiment_name=f"g1_amp_locomotion{exp_suffix}",
     logger="tensorboard",
     save_interval=100,
     num_steps_per_env=24,
