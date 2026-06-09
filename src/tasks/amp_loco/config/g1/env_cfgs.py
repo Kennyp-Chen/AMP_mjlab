@@ -210,15 +210,15 @@ def g1_amp_flat_env_cfg(play: bool = False, experiment: str = "baseline") -> Man
   # ------------------------------------------------------------------
   if experiment == "height_0.3":
     cfg.terminations["bad_base_height"].params["minimum_height"] = 0.3
-    print(f"[INFO] Experiment '{experiment}': Set termination height to 0.3m.")
   elif experiment == "height_0.7":
     cfg.terminations["bad_base_height"].params["minimum_height"] = 0.7
-    print(f"[INFO] Experiment '{experiment}': Set termination height to 0.7m.")
   elif experiment == "recovery_800":
     cfg.events["init_motion_loader"].params["max_delay_steps"] = 800
-    print(f"[INFO] Experiment '{experiment}': Set recovery delay to 800 steps.")
   elif experiment == "height_reward_3x":
     cfg.rewards["track_root_height"].weight = 3.0
-    print(f"[INFO] Experiment '{experiment}': Set height tracking reward weight to 3.0.")
+  elif experiment == "height_0.6":
+    cfg.terminations["bad_base_height"].params["minimum_height"] = 0.6
+  elif experiment == "height_reward_2x":
+    cfg.rewards["track_root_height"].weight = 2.0
 
   return cfg

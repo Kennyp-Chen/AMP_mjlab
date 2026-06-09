@@ -80,3 +80,23 @@ register_mjlab_task(
   rl_cfg=g1_amp_ppo_runner_cfg(experiment="seed_100", seed=100),
   runner_cls=AMPOnPolicyRunner,
 )
+
+# ExpF: Higher height tracking weight — strengthens the only positive
+#  reward signal available during the recovery window.
+register_mjlab_task(
+  task_id="Unitree-G1-AMP-Flat-HeightReward2x",
+  env_cfg=g1_amp_flat_env_cfg(experiment="height_reward_2x"),
+  play_env_cfg=g1_amp_flat_env_cfg(play=True, experiment="height_reward_2x"),
+  rl_cfg=g1_amp_ppo_runner_cfg(experiment="height_reward_2x"),
+  runner_cls=AMPOnPolicyRunner,
+)
+
+# ExpG: Higher termination height — forces stricter fall prevention,
+#  the policy must keep the root higher at all times.
+register_mjlab_task(
+  task_id="Unitree-G1-AMP-Flat-Height06",
+  env_cfg=g1_amp_flat_env_cfg(experiment="height_0.6"),
+  play_env_cfg=g1_amp_flat_env_cfg(play=True, experiment="height_0.6"),
+  rl_cfg=g1_amp_ppo_runner_cfg(experiment="height_0.6"),
+  runner_cls=AMPOnPolicyRunner,
+)
