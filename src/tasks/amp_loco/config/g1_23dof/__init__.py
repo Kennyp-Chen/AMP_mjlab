@@ -22,3 +22,17 @@ register_mjlab_task(
   rl_cfg=g1_23dof_amp_ppo_runner_cfg(),
   runner_cls=AMPOnPolicyRunner,
 )
+
+# ------------------------------------------------------------------
+# Experiment tasks (parameter tuning on Flat terrain)
+# ------------------------------------------------------------------
+
+# ExpX: Higher height tracking weight — strengthens the only positive
+# reward signal available during the recovery window (23DOF variant).
+register_mjlab_task(
+  task_id="Unitree-G1-23DOF-AMP-Flat-HeightReward2x",
+  env_cfg=g1_23dof_amp_flat_env_cfg(experiment="height_reward_2x"),
+  play_env_cfg=g1_23dof_amp_flat_env_cfg(play=True, experiment="height_reward_2x"),
+  rl_cfg=g1_23dof_amp_ppo_runner_cfg(experiment="height_reward_2x"),
+  runner_cls=AMPOnPolicyRunner,
+)

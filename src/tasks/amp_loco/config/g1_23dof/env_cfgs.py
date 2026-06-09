@@ -163,8 +163,15 @@ def g1_23dof_amp_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   return cfg
 
 
-def g1_23dof_amp_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-  """Create Unitree G1 23DOF flat terrain AMP configuration."""
+def g1_23dof_amp_flat_env_cfg(play: bool = False, experiment: str = "baseline") -> ManagerBasedRlEnvCfg:
+  """Create Unitree G1 23DOF flat terrain AMP configuration.
+
+  Args:
+      play: If True, apply play-mode overrides (infinite episode, no corruption, etc.).
+      experiment: Experiment name for parameter tuning.
+          - "baseline"       : original config
+          - "height_reward_2x": higher height tracking weight (1.0 → 2.0)
+  """
   cfg = g1_23dof_amp_rough_env_cfg(play=play)
 
   cfg.sim.njmax = 640
@@ -188,5 +195,11 @@ def g1_23dof_amp_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     twist_cmd.ranges.lin_vel_x = (-1.5, 3.0)
     twist_cmd.ranges.lin_vel_y = (-1.0, 1.0)
     twist_cmd.ranges.ang_vel_z = (-3.14 / 2, 3.14 / 2)
+
+  # ------------------------------------------------------------------
+  # Experiment parameter overrides (apply after all base setup)
+  # ------------------------------------------------------------------
+  if experiment == "height_reward_2x":
+    cfg.rewards["track_root_height"].weight = 2.0
 
   return cfg

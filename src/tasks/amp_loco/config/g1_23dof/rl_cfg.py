@@ -31,8 +31,13 @@ class RslRlAmpRunnerCfg(RslRlOnPolicyRunnerCfg):
   amp_anchor_name: str = ""
 
 
-def g1_23dof_amp_ppo_runner_cfg() -> RslRlAmpRunnerCfg:
-  """Create RL runner configuration for Unitree G1 23DOF AMP locomotion task."""
+def g1_23dof_amp_ppo_runner_cfg(experiment: str = "baseline") -> RslRlAmpRunnerCfg:
+  """Create RL runner configuration for Unitree G1 23DOF AMP locomotion task.
+
+  Args:
+      experiment: Experiment name; appended to the log directory name.
+  """
+  exp_suffix = "" if experiment == "baseline" else f"_{experiment}"
   return RslRlAmpRunnerCfg(
     actor=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
@@ -64,7 +69,7 @@ def g1_23dof_amp_ppo_runner_cfg() -> RslRlAmpRunnerCfg:
       max_grad_norm=1.0,
       class_name="AMPPPO",
     ),
-    experiment_name="g1_23dof_amp_locomotion",
+    experiment_name=f"g1_23dof_amp_locomotion{exp_suffix}",
     logger="tensorboard",
     save_interval=100,
     num_steps_per_env=24,
