@@ -218,11 +218,14 @@ def run_play(task_id: str, cfg: PlayConfig):
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")
     assert log_dir is not None  # log_dir is set in TRAINED_MODE block
+    # Include model iteration in video filename for easy identification.
+    ckpt_stem = resume_path.stem  # e.g. "model_8700"
     env = VideoRecorder(
       env,
       video_folder=log_dir / "videos" / "play",
       step_trigger=lambda step: step == 0,
       video_length=cfg.video_length,
+      name_prefix=f"rl-video-{ckpt_stem}",
       disable_logger=True,
     )
 
